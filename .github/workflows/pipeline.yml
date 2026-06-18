@@ -1,0 +1,51 @@
+name: CI/CD Pipeline - Flask Docker App
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  DOCKERHUB_IMAGE: cristianmor99/flask-ci-app
+
+jobs:
+  test:
+    name: Ejecutar pruebas unitarias
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar el código del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Ejecutar tests con pytest
+        run: pytest -v
+
+  build-and-push:
+    name: Construir y subir imagen Docker
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Descargar el código del repositorio
+        uses: actions/checkout@v4
+
+      - name: Iniciar sesión en Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Construir la imagen Docker
+        run: docker build -t ${{ env.DOCKERHUB_IMAGE }}:latest .
+
+      - name: Subir la imagen a Docker Hub
+        run: docker push ${{ env.DOCKERHUB_IMAGE }}:latest
